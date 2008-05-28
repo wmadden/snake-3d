@@ -28,6 +28,7 @@ Player* Player_new( /* params */ )
         player->color[0] = PLAYER2_R;
         player->color[1] = PLAYER2_G;
         player->color[2] = PLAYER2_B;
+        count = -1;
         break;
     }
     
@@ -38,6 +39,13 @@ Player* Player_new( /* params */ )
 
 void Player_delete( Player* player )
 {
+    // Free the player's body
+    while( player->head != NULL )
+    {
+        free(player->head);
+        player->head = player->head->next;
+    }
+    
     free(player);
 }
 

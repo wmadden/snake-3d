@@ -30,6 +30,7 @@ SRC		:= $(SRC) input.c
 SRC		:= $(SRC) Camera.c
 SRC		:= $(SRC) Viewport.c
 SRC		:= $(SRC) maths.c
+SRC		:= $(SRC) text.c
 
 # Infer header and object files from source files
 HDR      = $(SRC:.c=.h)
@@ -101,10 +102,11 @@ GameState.o: Player.h GameState.h GameState.c
 mechanics.o: Player.h Object.h Landscape.h mechanics.h mechanics.c
 Landscape.o: Object.h Player.h Landscape.h Landscape.c
 Object.o: Object.h Object.c
-render.o: Viewport.h GameState.h render.h render.c
+render.o: Viewport.h GameState.h text.h render.h render.c
 Camera.o: Camera.h Camera.c
 Viewport.o: Camera.h Viewport.h Viewport.c
 maths.o: maths.h maths.c
+text.o: text.h text.c
 
 debug:
 	@echo "SOURCES"

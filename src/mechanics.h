@@ -56,6 +56,10 @@ void update_world( int delta );
  */
 void new_game();
 /**
+ * Returns true if the game is running.
+ */
+int is_running();
+/**
  * Pauses a running game.
  */
 void pause_game();

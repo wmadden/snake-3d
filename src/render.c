@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "maths.h"
 #include <math.h>
+#include "text.h"
 
 /*******************************************************************************
  * TYPE DEFINITIONS
@@ -18,7 +19,10 @@
 /*******************************************************************************
  * GLOBALS AND CONSTANTS
  ******************************************************************************/
-Viewport *player1_viewport, *player2_viewport, *minimap;
+Viewport *player1_viewport, *player2_viewport, *minimap, *hud;
+
+// The current frames per second
+float fps = 0.0f;
 
 // Do we prefer horizontal or vertical split screen?
 //#define PREFER_VERTICAL
@@ -29,16 +33,22 @@ Viewport *player1_viewport, *player2_viewport, *minimap;
 // How close the camera sticks to the player (0.0 - 1.0)
 #define CAMERA_TRACK_STRENGH 0.01
 
-// The distance of the camera from the player
+// The distance of the camera from the player, in grid divisions
+#define CAMERA_DISTANCE 5
+#define CAMERA_HEIGHT 2.0f
 float camera_distance = 0;
+float min_camera_height = 0.0f;
 
 #define SKY_R 0.8515625f
 #define SKY_G 0.91796875f
 #define SKY_B 0.953125f
 
+#define FOG_START 0.5
+#define FOG_END 0.6
 
 // The minimum number of milliseconds to wait before redrawing the scene
 #define MIN_REDRAW_DELAY 0
+
 
 /*******************************************************************************
  * INTERNAL FUNCTION PROTOTYPES
@@ -53,22 +63,34 @@ void render_projectiles( Projectile* proj1, Projectile* proj2 );
 void render_edibles( Edible* edible );
 int should_render();
 void render_viewport( Viewport* viewport, GameState* gamestate );
+void render_hud( Viewport* viewport, GameState* gamestate );
 void calc_fps();
 void set_3_4_view( Camera* camera, float position[3], float forward[3], float up[3], int delta );
+//void draw_segment( Point start, Point end, )
 
 /*******************************************************************************
  * PUBLIC FUNCTIONS
  ******************************************************************************/
 void render_init()
 {
+    GameState* gamestate = get_gamestate();
     // Create cameras for both players
     player1_viewport = Viewport_new( 0, 0, 800, 300 );
     player2_viewport = Viewport_new( 0, 300, 800, 300 );
     
     minimap = Viewport_new( 350, 250, 100, 100 );
     minimap->ortho = 1;
-    minimap->left = -2.0f; minimap->right = 2.0f;
-    minimap->top = 2.0f; minimap->bottom = -2.0f;
+    minimap->bottom = gamestate->landscape->southBound;
+    minimap->top = gamestate->landscape->northBound;
+    minimap->left = gamestate->landscape->westBound;
+    minimap->right = gamestate->landscape->eastBound;
+    
+    hud = Viewport_new( 0, 0, 800, 600 );
+    hud->ortho = 1;
+    hud->bottom = -1;
+    hud->top = 1;
+    hud->left = -1;
+    hud->right = 1;
     
     // Set up the scene
     set_up_GL();
@@ -88,20 +110,21 @@ void render()
     // Get the gamestate
     gamestate = get_gamestate();
     
-    // Set camera distance
-    camera_distance = gamestate->landscape->gridDivisionDepth * 10.0f;
+    // Set the default buffer colour to black
+    glClearColor( SKY_R, SKY_G, SKY_B, 1.0f );
     
     // Clear the colour and depth buffers
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     
     // Draw player 1's viewport
-    render_viewport(player1_viewport, gamestate);
+    render_viewport( player1_viewport, gamestate );
     // Draw player 2's viewport
-    render_viewport(player2_viewport, gamestate);
+    render_viewport( player2_viewport, gamestate );
     
-    // Turn off depth buffering for the minimap
+    // Turn off depth buffering for the minimap and HUD
     glDisable(GL_DEPTH_TEST);
-    render_viewport(minimap, gamestate);
+    render_viewport( minimap, gamestate );
+    render_hud( hud, gamestate );
     glEnable(GL_DEPTH_TEST);
     
     // Swap the buffers
@@ -147,12 +170,14 @@ void window_resized( int width, int height )
     
     minimap->x = width / 2 - minimap->width / 2;
     minimap->y = height / 2 - minimap->width / 2;
+    
+    hud->x = hud->y = 0;
+    hud->width = width; hud->height = height;
 }
 
 void render_update( int delta )
 {
-    if( get_gamestate()->mode == MODE_RUNNING )
-        update_cameras(delta);
+    update_cameras(delta);
     // Update anything else that changes with time
 }
 
@@ -166,6 +191,11 @@ void setup_cameras()
     Player *player1 = gamestate->player1,
            *player2 = gamestate->player2;
     
+    // Set camera distance
+    camera_distance = gamestate->landscape->gridDivisionDepth * CAMERA_DISTANCE;
+    // Set the minimum camera height above the terrain
+    min_camera_height = gamestate->player1->radius * CAMERA_HEIGHT;
+    
     /* Set up the players' viewports */
     set_3_4_view( player1_viewport->camera,
                   player1->headPosition,
@@ -178,22 +208,29 @@ void setup_cameras()
                   player2->up,
                   1000000 );
     
-    /* Set up the minimap */
+    /* Set up the minimap camera */
     minimap->camera->position[0] = gamestate->landscape->westBound + 
                                    gamestate->landscape->worldWidth / 2.0f;
-    minimap->camera->position[1] = gamestate->landscape->maxHeight * 2;
+    minimap->camera->position[1] = gamestate->landscape->maxHeight * 10;
     minimap->camera->position[2] = gamestate->landscape->southBound +
                                    gamestate->landscape->worldDepth / 2.0f;
-    minimap->bottom = gamestate->landscape->southBound;
-    minimap->top = gamestate->landscape->northBound;
-    minimap->left = gamestate->landscape->westBound;
-    minimap->right = gamestate->landscape->eastBound;
     minimap->camera->forward[0] = 0.0f;
     minimap->camera->forward[1] = 0.0f;
     minimap->camera->forward[2] = 0.0f;
     minimap->camera->up[0] = 0.0f;
     minimap->camera->up[1] = 0.0f;
     minimap->camera->up[2] = 1.0f;
+    
+    /* Set up the HUD camera */
+    hud->camera->position[0] = 0.0f;
+    hud->camera->position[1] = 0.0f;
+    hud->camera->position[2] = 10.0f;
+    hud->camera->forward[0] = 0.0f;
+    hud->camera->forward[1] = 0.0f;
+    hud->camera->forward[2] = 0.0f;
+    hud->camera->up[0] = 0.0f;
+    hud->camera->up[1] = 1.0f;
+    hud->camera->up[2] = 0.0f;
 }
 
 /**
@@ -231,20 +268,12 @@ void set_3_4_view( Camera* camera, float position[3], float forward[3], float up
     camera->forward[2] = position[2];
     
     // Find the camera's ideal position
-    ideal_position[0] = position[0] + (-0.25 * forward[0] + 
-                          0.75 * up[0]) * camera_distance;
-    ideal_position[1] = position[1] + (-0.25 * forward[1] + 
-                          0.75 * up[1]) * camera_distance;
-    ideal_position[2] = position[2] + (-0.25 * forward[2] + 
-                          0.75 * up[2]) * camera_distance;
-    /*ideal_position[0] *= camera_distance;
-    ideal_position[1] *= camera_distance;
-    ideal_position[2] *= camera_distance;*/
-    
-    // Set the camera's up vector
-    ideal_up[0] = 0.75 * fabs(forward[0]) + 0.25 * up[0];
-    ideal_up[1] = 0.75 * fabs(forward[1]) + 0.25 * up[1];
-    ideal_up[2] = 0.75 * fabs(forward[2]) + 0.25 * up[2];
+    ideal_position[0] = position[0] + (-0.05 * fabs(forward[0]) + 
+                          1.5 * up[0]) * camera_distance;
+    ideal_position[1] = position[1] + (-0.05 * fabs(forward[1]) + 
+                          1.5 * up[1]) * camera_distance;
+    ideal_position[2] = position[2] + (-0.05 * fabs(forward[2]) + 
+                          1.5 * up[2]) * camera_distance;
     
     // Find the distance between the camera's current position and its ideal
     // position
@@ -261,13 +290,13 @@ void set_3_4_view( Camera* camera, float position[3], float forward[3], float up
     up_movement = up_correction * (delta / 1000.0f) + CAMERA_TRACK_STRENGH;
     
     // Correct the camera position
-    if( position_movement > position_distance )
-    {
+    /*if( position_movement > position_distance )
+    {*/
         camera->position[0] = ideal_position[0];
         camera->position[1] = ideal_position[1];
         camera->position[2] = ideal_position[2];
-    }
-    if( position_movement != 0 )
+    /*}*/
+    /*else if( position_movement != 0 )
     {
         camera->position[0] += position_movement *
                                (ideal_position[0] - camera->position[0]);
@@ -275,7 +304,7 @@ void set_3_4_view( Camera* camera, float position[3], float forward[3], float up
                                (ideal_position[1] - camera->position[1]);
         camera->position[2] += position_movement *
                                (ideal_position[2] - camera->position[2]);
-    }
+    }*/
     // Correct the camera up vector
     /*if( up_movement != 0 )
     {
@@ -296,9 +325,9 @@ void set_3_4_view( Camera* camera, float position[3], float forward[3], float up
 		Landscape_getHeight( landscape,
 							 camera->position[0],
 							 camera->position[2] );
-	if( camera->position[1] < terrain_height )
+	if( camera->position[1] < terrain_height + min_camera_height )
 	{
-		camera->position[1] = terrain_height;
+		camera->position[1] = terrain_height + min_camera_height;
 	}
 }
 
@@ -348,6 +377,7 @@ void set_up_GL()
     
     // Enable colour materials
     glEnable(GL_COLOR_MATERIAL);
+    
 }
 
 /**
@@ -414,14 +444,24 @@ void render_landscape( Landscape* landscape, float actual_width )
     
     // Scale
     //glScalef( actual_width, actual_width / 4.0f, actual_width );
+    float ambient = 0.0,
+          diffuse = 0.0,
+          specular = 1.0, specular_focus = 60;
+    GLfloat ambient_colour[] = { ambient, ambient, ambient, 1.0f };
+    GLfloat diffuse_colour[] = { diffuse, diffuse, diffuse, 1.0f };
+    GLfloat specular_colour[] = { specular, specular, specular, 0.0f };
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient_colour);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse_colour);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular_colour);
+    glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, specular_focus);
     
     // Set up lighting in the context of the landscape
     set_up_lighting();
-    
+
     for( column = 0; column < landscape->gridWidth - 1; column++ )
     {
         glBegin(GL_QUAD_STRIP);
-        for( row = 0; row < landscape->gridWidth - 1; row++ )
+        for( row = 0; row < landscape->gridWidth; row++ )
         {
             // Left point
             glColor3fv( landscape->colorMap[row][column] );
@@ -477,6 +517,14 @@ void render_player( Player* player, float scale )
         glTranslatef( player->headPosition[0],
                       player->headPosition[1],
                       player->headPosition[2] );
+        
+        // Draw forward and up vectors
+        glBegin(GL_LINES);
+        glVertex3fv( player->headPosition );
+        glVertex3fv( player->forward );
+        glVertex3fv( player->headPosition );
+        glVertex3fv( player->up );
+        glEnd();
         
         glutSolidCube( 1.0f * scale );
     glPopMatrix();
@@ -586,7 +634,6 @@ void render_viewport( Viewport* viewport, GameState* gamestate )
     render_edible( gamestate->edible );
 }
 
-
 /**
  * This function calculates the current frames per second.
  * It should be called every time a frame is drawn.
@@ -618,7 +665,36 @@ void calc_fps()
     {
         time = 0;
         frames = 0;
-        // Print the FPS
-        printf("FPS: %f\n", result);
+        // Update the FPS
+        fps = result;
     }
 }
+
+/**
+ * Renders the HUD on the given viewport.
+ */
+void render_hud( Viewport* hud, GameState* gamestate )
+{
+    char fps_string[15];
+    // Reload the identity matrix
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    Viewport_apply(hud);
+    
+    
+    // Draw the FPS
+    sprintf( fps_string, "FPS: %3.1f", fps );
+    
+    glDisable(GL_LIGHTING);
+    
+    glLineWidth(2.0f);
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    draw_2D_text( fps_string, 0, 590, 10, hud );
+    glLineWidth(0.8f);
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    draw_2D_text( fps_string, 0, 590, 10, hud );
+    
+    glEnable(GL_LIGHTING);
+}
+

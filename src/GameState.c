@@ -45,3 +45,11 @@ void GameState_clearEdibles( GameState* gamestate )
     gamestate->edible = NULL;
 }
 
+void GameState_clearPlayers( GameState* gamestate )
+{
+    Player_delete(gamestate->player1);
+    gamestate->player1 = Player_new();
+    Player_delete(gamestate->player2);
+    gamestate->player2 = Player_new();
+}
+

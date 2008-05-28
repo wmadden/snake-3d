@@ -6,6 +6,7 @@ typedef struct {
     float position[3];
     // The velocity of the object (in distance units per second)
     float velocity[3];
+    
     // The radius of the object
     float radius;
 } Object;

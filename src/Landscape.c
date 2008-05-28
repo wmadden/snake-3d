@@ -19,9 +19,16 @@
 Normal* Normal_new( float X, float Y, float Z );
 Point* Point_new( float X, float Y, float Z );
 Color* Color_new( float, float, float, float );
+
 ColorMap* ColorMap_new( int width );
 PointMap* PointMap_new( int width );
 NormalMap* NormalMap_new( int width );
+
+void ColorMap_delete( ColorMap*, int );
+void NormalMap_delete( NormalMap*, int );
+void PointMap_delete( PointMap*, int );
+
+
 float bounded_random( float max, float min );
 float displace( float rand_effect_size );
 void fractalIteration( int Ax, int Ay, int fsize,float rand_effect_size,
@@ -91,11 +98,11 @@ void Landscape_delete( Landscape* landscape )
         return;
     
     if( landscape->colorMap != NULL )
-        // TODO: ColorMap_delete( landscape->colorMap );
+        ColorMap_delete( &landscape->colorMap, landscape->gridWidth );
     if( landscape->pointMap != NULL )
-        // TODO: PointMap_delete( landscape->pointMap );
+        PointMap_delete( &landscape->pointMap, landscape->gridWidth );
     if( landscape->normalMap != NULL )
-        // TODO: NormalMap_delete( landscape->normalMap );
+        NormalMap_delete( &landscape->normalMap, landscape->gridWidth );
     
     free( landscape );
 }
@@ -160,6 +167,15 @@ void Landscape_generate( Landscape* landscape )
         fractalIteration(size,size, size,   rand_effect_size, landscape); 
         // x, y     quad
     }
+    
+    int i, j;
+    for( i = 0; i < landscape->gridWidth; i++ )
+    {
+        for( j = 0; j < landscape->gridWidth; j++ )
+        {
+            set_color( landscape, i, j, landscape->pointMap[i][j][1] );
+        }
+    }
 
     return;
 }
@@ -186,13 +202,22 @@ int Landscape_getColumn( Landscape* landscape, float Z){
 float Landscape_getHeight( Landscape* landscape, float X, float Z )
 {
     int row, col;
-        
+       
     // row should be the Row not the column, but it wasn't working right
     // useing the column is a hacky fix, 
     // it works provided that landscape->westBound == landscape->southBound
     row = Landscape_getColumn(landscape, X);
     col = Landscape_getColumn(landscape, Z);
-        
+    
+    if( row < 0 )
+        row = 0;
+    else if( row >= landscape->gridWidth )
+        row = landscape->gridWidth - 1;
+    if( col < 0 )
+        col = 0;
+    else if( col >= landscape->gridWidth )
+        col = landscape->gridWidth - 1;
+    
     return landscape->pointMap[row][col][1];
 }
 
@@ -211,7 +236,7 @@ void set_point( Landscape* landscape, int row, int column,
     landscape->pointMap[row][column][2] = Z;
     
     // Set the colour
-    set_color( landscape, row, column, Y );
+    //set_color( landscape, row, column, Y );
 }
 
 /**
@@ -310,6 +335,7 @@ void fractalIteration(int Ax, int Ay, int fsize,float rand_effect_size, Landscap
         /* Calculate normals */
         // Always calculate the top-left point's normal
         calculate_vertex_normal( landscape, Ax, Ay );
+        calculate_vertex_normal( landscape, Ax + size, Ay + size );
         
         // If we're on the right, calculate the top right point's normal
         if( Ax + fsize == landscape->gridWidth - 1 )
@@ -543,5 +569,46 @@ void set_height( Landscape* landscape, int row, int column,
     X = landscape->westBound + row * landscape->gridDivisionWidth;
     Z = landscape->southBound + column * landscape->gridDivisionDepth;
     
+    if( height > landscape->maxHeight )
+        landscape->maxHeight = height;
+    else if( height < landscape->minHeight )
+        landscape->minHeight = height;
+    
     set_point( landscape, row, column, X, height, Z );
+}
+
+void ColorMap_delete( ColorMap* map, int width )
+{
+    int i, j;
+    
+    for( i = 0; i < width; i++ )
+    {
+        free( (*map)[i] );
+    }
+    
+    free( (*map) );
+}
+
+void NormalMap_delete( NormalMap* map, int width )
+{
+    int i, j;
+        
+    for( i = 0; i < width; i++ )
+    {
+        free( (*map)[i] );
+    }
+    
+    free( (*map) );
+}
+
+void PointMap_delete( PointMap* map, int width )
+{
+    int i, j;
+        
+    for( i = 0; i < width; i++ )
+    {
+        free( (*map)[i] );
+    }
+    
+    free( (*map) );
 }

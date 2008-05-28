@@ -132,15 +132,11 @@ void game_loop()
     delta = 1 + now - last_time; // TODO: remove the 1
     update_world(delta);
     
-    /* TODO: Set the current window to the main window */
-    
     /* Update the render module */
     render_update(delta);
     
     /* Render the game */
     render();
     
-    /* TODO: set the current window to the debug window */
-    /* TODO: output debug info */
     last_time = now;
 }

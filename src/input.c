@@ -56,10 +56,12 @@ void ascii_key_handler(unsigned char key, int x, int y)
             fire_player_weapon(LEFT_PLAYER_ID);
             break;
         case PAUSE_KEY:
-            if( !is_paused() )
+            if( is_running() )
                 pause_game();
-            else
+            else if( is_paused() )
                 resume_game();
+            else
+                new_game();
             break;
         case DEBUG_KEY:
             fprintf(stderr, "Debug output:\n");

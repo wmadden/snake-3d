@@ -27,7 +27,7 @@
 // The players' speed, in grid divisions per second
 #define PLAYER_SPEED 20
 // Initial maximum length of a player, in grid divisions
-#define PLAYER_INITIAL_LENGTH 5
+#define PLAYER_INITIAL_LENGTH 64
 // Player's radius, in grid divisions
 #define PLAYER_RADIUS 0.5
 
@@ -38,14 +38,16 @@
 // The radius of edibles, in grid divisions
 #define FOOD_RADIUS 3.0f
 // The amount of tail food gives you, in grid divisions
-#define FOOD_LENGTH_INCREMENT 10.0f
+#define FOOD_LENGTH_INCREMENT 64.0f
 
 // Projectile speed, in grid divisions per second
 #define PROJ_SPEED 3.0f
 // deformation amount is the depth in divisions
 // radius is also in divisions
 #define DEFORMATION_RADIUS 80.0f
-#define DEFORMATION_AMOUNT 5.0f
+#define DEFORMATION_AMOUNT 2.0f
+
+#define COUNTDOWN_TIME 3.0f
 
 GameState* gamestate = NULL;
 
@@ -89,7 +91,7 @@ void update_food( int delta );
 void apply_gravity( Object* object, int delta );
 void apply_object_velocity( Object* object, int delta );
 
-void set_next_point( Player* player );
+int set_next_point( Player* player );
 
 void move_player( Player* player, int delta );
 int test_player_collisions( Player* player, float movement );
@@ -107,7 +109,6 @@ float distance_to_next_point( Player* player );
 void closest_grid_coordinate( float X, float Z, int* row, int* column );
 float get_height_at_point( Landscape* landscape, float X, float Z );
 
-
 void deform_landscape( float X, float Z, Landscape* landscape );
 
 void print_score();
@@ -123,15 +124,34 @@ void mechanics_init( int current_time )
 
 void update_world( int delta )
 {
-    if( gamestate->mode != MODE_RUNNING )
-        return;
+    // If we're counting down to begin the game, count down
+    if( gamestate->mode == MODE_COUNTDOWN )
+    {
+        // If we've reached the end of the countdown, start the game
+        if( gamestate->countdown <= 0 )
+        {
+            gamestate->countdown = 0;
+            gamestate->mode = MODE_RUNNING;
+        }
+        else
+        {
+            // Decrement the countdown timer
+            gamestate->countdown -= delta / 1000.0f;
+            // We still want food to drop
+            update_food(delta);
+        }
+    }
     
-    // Move players
-    update_players(delta);
-    // Update projectiles
-    update_projectiles(delta);
-    // Update food
-    update_food(delta);
+    // If the game is running, update everything
+    if( gamestate->mode == MODE_RUNNING )
+    {
+        // Move players
+        update_players(delta);
+        // Update projectiles
+        update_projectiles(delta);
+        // Update food
+        update_food(delta);
+    }
 }
 
 void new_game()
@@ -141,19 +161,22 @@ void new_game()
     if( gamestate == NULL )
     {
         gamestate = GameState_new();
-        gamestate->landscape = Landscape_new( DEFAULT_GRID_SIZE,
-                                              WORLD_MINHEIGHT,
-                                              WORLD_MAXHEIGHT,
-                                              WORLD_SOUTH_BOUND,
-                                              WORLD_WEST_BOUND,
-                                              WORLD_WIDTH,
-                                              WORLD_DEPTH );
-        gamestate->mode = MODE_RUNNING;
     }
     else
     {
         clear_gamestate();
     }
+    
+    gamestate->landscape = Landscape_new( DEFAULT_GRID_SIZE,
+                                          WORLD_MINHEIGHT,
+                                          WORLD_MAXHEIGHT,
+                                          WORLD_SOUTH_BOUND,
+                                          WORLD_WEST_BOUND,
+                                          WORLD_WIDTH,
+                                          WORLD_DEPTH );
+
+    gamestate->mode = MODE_COUNTDOWN;
+    gamestate->countdown = COUNTDOWN_TIME;
     
     /* Set up initial game conditions */
     // Set the player speed.
@@ -184,7 +207,7 @@ int fire_player_weapon( int player_id )
     
     if( gamestate->mode != MODE_RUNNING )
     {
-        return;
+        return 0;
     }
     
     if( player_id == 1 )
@@ -271,40 +294,48 @@ change_player_direction( int player_id, Turn dir )
         if( dir == TURN_RIGHT )
         {
             player->nextDir = DIRECTION_WEST;
+            printf("Player direction now west\n");
         }
         else
         {
             player->nextDir = DIRECTION_EAST;
+            printf("Player direction now east\n");
         }
         break;
     case DIRECTION_SOUTH:
         if( dir == TURN_RIGHT )
         {
             player->nextDir = DIRECTION_EAST;
+            printf("Player direction now east\n");
         }
         else
         {
             player->nextDir = DIRECTION_WEST;
+            printf("Player direction now west\n");
         }
         break;
     case DIRECTION_EAST:
         if( dir == TURN_RIGHT )
         {
             player->nextDir = DIRECTION_NORTH;
+            printf("Player direction now north\n");
         }
         else
         {
             player->nextDir = DIRECTION_SOUTH;
+            printf("Player direction now south\n");
         }
         break;
     case DIRECTION_WEST:
         if( dir == TURN_RIGHT )
         {
             player->nextDir = DIRECTION_SOUTH;
+            printf("Player direction now south\n");
         }
         else
         {
             player->nextDir = DIRECTION_NORTH;
+            printf("Player direction now north\n");
         }
         break;
     }
@@ -370,7 +401,7 @@ void initialize_player( Player* player, int row, int column, Direction dir )
  * 
  * Takes as parameter the player whose properties are being set.
  */
-void set_next_point( Player* player )
+int set_next_point( Player* player )
 {
     int next_point[2];
     Landscape* landscape = gamestate->landscape;
@@ -399,8 +430,6 @@ void set_next_point( Player* player )
         next_point[0] = player->head->gridPosition[0] - 1;
         next_point[1] = player->head->gridPosition[1];
         break;
-    default:
-        exit(1); // Should never happen
     }
     
     // Check that they haven't collided with the walls
@@ -408,23 +437,19 @@ void set_next_point( Player* player )
      * calculate their forward vector if they're on an edge heading out. */
     if( next_point[0] < 0 )
     {
-        player_wall_collision(player, DIRECTION_WEST);
-        return;
+        return player_wall_collision(player, DIRECTION_WEST);
     }
     else if( next_point[0] >= landscape->gridWidth )
     {
-        player_wall_collision(player, DIRECTION_EAST);
-        return;
+        return player_wall_collision(player, DIRECTION_EAST);
     }
     if( next_point[1] < 0 )
     {
-        player_wall_collision(player, DIRECTION_SOUTH);
-        return;
+        return player_wall_collision(player, DIRECTION_SOUTH);
     }
     else if( next_point[1] >= landscape->gridWidth )
     {
-        player_wall_collision(player, DIRECTION_NORTH);
-        return;
+        return player_wall_collision(player, DIRECTION_NORTH);
     }
     
     // Create the new body segment
@@ -451,6 +476,8 @@ void update_players( int delta )
  */
 int player_wall_collision( Player* player, Direction wall )
 {
+    // Reverse their direction, and put them back on a viable grid coordinate
+    
     // Reverse their direction, and put them back on a viable grid coordinate
     if( player->currentDir == DIRECTION_NORTH )
     {
@@ -483,7 +510,8 @@ int player_wall_collision( Player* player, Direction wall )
     
     print_score();
     
-    exit(0);
+    gamestate->mode = MODE_FINISHED;
+    return 0;
 }
 
 void move_player( Player* player, int delta )
@@ -537,8 +565,11 @@ void move_player( Player* player, int delta )
             }
             // Set the amount moved
             amount_moved = distance;
-            // Set the next point the player will hit
-            set_next_point(player);
+            // Set the next point the player will hit, if we can
+            if( !set_next_point(player) )
+            {
+                return;
+            }
             // Set their forward vector
             set_player_forward_vector( player, gamestate->landscape );
             // Set their up vector
@@ -726,7 +757,8 @@ int player_player_collision( int head_on )
     }
     
     print_score();
-    exit(0);
+    gamestate->mode = MODE_FINISHED;
+    return 0;
 }
 
 /**
@@ -744,6 +776,7 @@ void update_player_positions( Player* player )
                                    player->tailOffset,
                                    player->tail->previous->position,
                                    player->tail->position );
+    set_player_forward_vector( player, gamestate->landscape );
 }
 
 void calculate_offset_position( Direction dir, float position[3],
@@ -806,10 +839,14 @@ void set_player_up_vector( Player* player )
 
 void clear_gamestate()
 {
+    // Clear the players
+    GameState_clearPlayers(gamestate);
     // Clear any projectiles in the game
     GameState_clearProjectiles(gamestate);
     // Clear any food in the game
     GameState_clearEdibles(gamestate);
+    // Destroy the landscape
+    Landscape_delete( gamestate->landscape );
 }
 
 void generate_edible()
@@ -938,8 +975,11 @@ void deform_landscape( float X, float Z, Landscape* landscape )
     int j_max = epicentre_j + DEFORMATION_RADIUS * landscape->gridDivisionWidth;
     Point* point;
     float dist;
+	int dist2;
     
     epicentre = Landscape_getPoint(landscape, epicentre_i, epicentre_j);
+	if(!epicentre)
+		return;
 
     for(i=i_min; i<i_max; i++){
         if( i < 0 || i > landscape->gridWidth )
@@ -948,24 +988,28 @@ void deform_landscape( float X, float Z, Landscape* landscape )
             if( j < 0 || j > landscape->gridWidth )
                 continue;
             point = Landscape_getPoint(landscape, i, j); 
+			if(!point)
+				continue;
             dist = distance_between_points(*point, *epicentre);
+			dist2 = sqrtf(powf(i - epicentre_i,2) + powf(j- epicentre_j,2));
             // to make the square defined by the iterators into a circle
-            if (dist <= DEFORMATION_RADIUS * landscape->gridDivisionWidth){
-                (*point)[1] -= DEFORMATION_AMOUNT * landscape->gridDivisionWidth * cosf((DEFORMATION_RADIUS * landscape->gridDivisionWidth - dist)/DEFORMATION_RADIUS * landscape->gridDivisionWidth);
+            if (dist2 <= DEFORMATION_RADIUS * landscape->gridDivisionWidth){
+                (*point)[1] -= DEFORMATION_AMOUNT * landscape->gridDivisionWidth * cosf((DEFORMATION_RADIUS * landscape->gridDivisionWidth - dist2)/DEFORMATION_RADIUS * landscape->gridDivisionWidth);
+				// this doen't actually work because the landscape is sometimes lower than min_height
                 // prevent it from deforming into a black hole
-                if((*point)[1] < landscape->minHeight)
-                    (*point)[1] = landscape->minHeight;
-                // set the normal to the vector from the current point to the epicentre
-                // not using vertex normals here because I can go one better: 
-                // this is a special case for spheres
-                gamestate->landscape->normalMap[i][j][0] = (*epicentre)[0] - (*point)[0];
-                gamestate->landscape->normalMap[i][j][1] = (*epicentre)[1] - (*point)[1];
-                gamestate->landscape->normalMap[i][j][2] = (*epicentre)[2] - (*point)[2];
+                // if((*point)[1] < landscape->minHeight)
+                    // (*point)[1] = landscape->minHeight;
                 // change the colour to "burnt out"
                 gamestate->landscape->colorMap[i][j][0] = 0.1f;
                 gamestate->landscape->colorMap[i][j][1] = 0.15f;
                 gamestate->landscape->colorMap[i][j][2] = 0.15f;
-            }
+			}
+			// set the normal to the vector from the current point to the epicentre
+            // not using vertex normals here because I can go one better: 
+            // this is a special case for spheres
+            gamestate->landscape->normalMap[i][j][0] = (*epicentre)[0] - (*point)[0];
+            gamestate->landscape->normalMap[i][j][1] = (*epicentre)[1] - (*point)[1];
+            gamestate->landscape->normalMap[i][j][2] = (*epicentre)[2] - (*point)[2];
         }
     }
 }
@@ -1044,4 +1088,9 @@ void print_score()
 {
     printf( "Player 1 score: %d\n", gamestate->player1->score );
     printf( "Player 2 score: %d\n", gamestate->player2->score );
+}
+
+int is_running()
+{
+    return gamestate->mode == MODE_RUNNING;
 }

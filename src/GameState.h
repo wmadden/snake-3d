@@ -11,7 +11,7 @@
 #include "Object.h"
 
 typedef enum {
-    MODE_MENU, MODE_RUNNING, MODE_PAUSED
+    MODE_MENU, MODE_COUNTDOWN, MODE_RUNNING, MODE_PAUSED, MODE_FINISHED
 } GameMode;
 
 /**
@@ -20,6 +20,7 @@ typedef enum {
  */
 typedef struct {
     GameMode mode; // The mode of the game (playing, paused, menu etc.)
+    float countdown; // The number of seconds before the game starts
     
     // The game's players
     Player* player1;
@@ -41,5 +42,6 @@ GameState* GameState_new( /* params */ );
 void GameState_delete( GameState* gamestate );
 void GameState_clearProjectiles( GameState* gamestate );
 void GameState_clearEdibles( GameState* gamestate );
+void GameState_clearPlayers( GameState* gamestate );
 
 #endif /*GAMESTATE_H_*/

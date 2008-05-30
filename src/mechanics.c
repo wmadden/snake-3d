@@ -458,6 +458,8 @@ int set_next_point( Player* player )
          gamestate->landscape->pointMap[next_point[0]][next_point[1]][1],
          gamestate->landscape->pointMap[next_point[0]][next_point[1]][2] ),
          &(player->head) );
+    
+    return 1;
 }
 
 void update_players( int delta )
@@ -665,9 +667,7 @@ int test_player_collisions( Player* player, float movement )
     
     // See if they're going to hit the other player's body
     Body *body;
-    float radius = player->radius + other->radius;
-    float distToBody;
-    
+     
     body = other->head->next;
     
     while( body->next != other->tail && body->next != NULL )

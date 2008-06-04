@@ -1,8 +1,14 @@
-#include "mechanics.h"
-#include "input.h"
-#include "render.h"
-#include "Window.h"
+/*******************************************************************************
+ * main.cpp
+ * 
+ * This file defines the entry point for the application.
+ * It performs general initialization, and contains the game loop.
+ ******************************************************************************/
+#include "graphics/Window.h"
 #include <stdlib.h>
+
+using namespace graphics;
+
 
 /*******************************************************************************
  * MACROS
@@ -26,15 +32,18 @@
 // throwing a hissy fit
 #include <GL/glut.h>
 
+
 /*******************************************************************************
  * GLOBALS AND CONSTANTS
  ******************************************************************************/
-#define PROJECT_TITLE "Project 2"
+#define WINDOW_TITLE "Snake 3D"
 #define DEFAULT_WINDOW_WIDTH 800
 #define DEFAULT_WINDOW_HEIGHT 600
 #define DEFAULT_WINDOW_X 0
 #define DEFAULT_WINDOW_Y 0
 
+Window* main_window = NULL;
+Window* debug_window = NULL;
 
 /*******************************************************************************
  * FUNCTION PROTOTYPES
@@ -85,27 +94,20 @@ void initialize_GLUT( int* argc, char** argv )
  * Mostly what this function does is link up the various game modules.
  */
 void initialize_game()
-{
-    int window_id;
-    
+{    
     // Seed the random number generator
     srand( time(NULL) );
     
-	/* Initialize windowing and rendering */
-    window_id = Window_new(PROJECT_TITLE);
+    /* Initialize windowing and rendering */
+    main_window = new Window(WINDOW_TITLE);
 
-    // Create a new game
-    new_game();
+    /* Create a new game */
     // TODO: show main menu instead of immediately starting the game
+    
     /* Initialize the game mechanics module */
     //mechanics_init( GET_CURRENT_TIME() );
     
-    Window_registerReshapeEventHandler( window_id, window_resized );
-    
     /* Initialize input */
-    input_init(window_id);
-    
-	render_init();
 
     /* Register the game loop */
     glutIdleFunc(game_loop);
@@ -130,13 +132,8 @@ void game_loop()
     
     // Get the time since the last update (minimum of one millisecond)
     delta = 1 + now - last_time; // TODO: remove the 1
-    update_world(delta);
-    
-    /* Update the render module */
-    render_update(delta);
     
     /* Render the game */
-    render();
     
     last_time = now;
 }

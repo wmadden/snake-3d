@@ -11,6 +11,15 @@ class Projectile : public domain::Object
 public:
 	Projectile();
 	virtual ~Projectile();
+
+	float getBlastRadius();
+	void setBlastRadius( float radius );
+	float getDamage();
+	void setDamage( float damage );
+	
+protected:
+    float blastRadius;
+    float damage;
 };
 
 }

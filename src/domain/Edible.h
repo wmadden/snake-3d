@@ -11,6 +11,12 @@ class Edible : public domain::Object
 public:
 	Edible();
 	virtual ~Edible();
+	
+	float getValue();
+	void setValue( float value );
+
+protected:
+    float value;
 };
 
 }

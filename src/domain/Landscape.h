@@ -2,6 +2,7 @@
 #define LANDSCAPE_H_
 
 #include <vector>
+#include "Point.h"
 
 using std::vector;
 
@@ -20,17 +21,19 @@ public:
 
 protected:
     int gridWidth;
-    
-    float northBound, southBound, EastBound, WestBound;
-    float minHeight, maxHeight;
-    float worldWidth, // The east-west distance across the world
-          worldDepth, // The north-south distance across the world
-          gridDivisionWidth, // The north-south distance between grid points
+    float gridDivisionWidth, // The north-south distance between grid points
           gridDivisionDepth; // The east-west distance between grid points
+    
+    float northBound, southBound, eastBound, westBound;
+    float minHeight, maxHeight;
+    
+    float width,  // The east-west distance across the world
+          depth,  // The north-south distance across the world
+          height; // The distance between the highest point and lowest point
     
     vector<float>** colorMap;
     vector<float>** normalMap;
-    vector<float>** pointMap;
+    vector<Point>** pointMap;
 };
 
 }

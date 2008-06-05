@@ -3,12 +3,20 @@
 namespace domain
 {
 
-Landscape::Landscape( int gridWidth,
-                      float southBound, float westBound,
-                      float depth, float height )
+Landscape::Landscape( int grid_width,
+                      float south_bound, float west_bound,
+                      float east_bound, float north_bound )
 {
+    gridWidth = grid_width;
+    southBound = south_bound;
+    westBound = west_bound;
+    eastBound = east_bound;
+    northBound = north_bound;
+    depth = northBound - southBound;
+    width = eastBound - westBound;
+    
     // Create point map
-    pointMap = new vector<float>*[gridWidth];
+    pointMap = new vector<Point>*[gridWidth];
     // Create color map
     colorMap = new vector<float>*[gridWidth];
     // Create normal map

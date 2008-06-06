@@ -22,12 +22,12 @@ Landscape::Landscape( int grid_width,
     // Create normal map
     normalMap = new vector<float>*[gridWidth];
     // Allocate the memory
-    for( int row = 0; row < gridWidth; row++ )
+    /*for( int row = 0; row < gridWidth; row++ )
     {
         pointMap[row] = new vector<float>[gridWidth];
         colorMap[row] = new vector<float>[gridWidth];
         normalMap[row] = new vector<float>[gridWidth];
-    }
+    }*/
     
     
     // Generate landscape

@@ -9,6 +9,11 @@ using std::vector;
 namespace domain
 {
 
+enum Direction
+{
+    DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST
+};
+
 class Landscape
 {
 public:
@@ -36,6 +41,6 @@ protected:
     vector<Point>** pointMap;
 };
 
-}
+} // End namespace `domain'
 
 #endif /*LANDSCAPE_H_*/

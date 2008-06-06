@@ -6,7 +6,7 @@
 namespace domain
 {
 
-class Entity : public domain::Object
+class Entity : public Object
 {
 public:
 	Entity();

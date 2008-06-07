@@ -3,12 +3,4 @@
 namespace domain
 {
 
-Point::Point()
-{
-}
-
-Point::~Point()
-{
-}
-
 }

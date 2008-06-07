@@ -7,9 +7,6 @@ namespace domain
 class Point
 {
 public:
-	Point();
-	virtual ~Point();
-
 	float x, y, z;
 };
 

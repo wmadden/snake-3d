@@ -17,14 +17,31 @@ enum Direction
 class Landscape
 {
 public:
-	Landscape( int gridWidth = 257,
-               float southBound = -1.0, float westBound = -1.0,
-               float depth = 2.0, float height = 2.0 );
+	Landscape( int grid_width,
+               float x, float y, float z,
+               float width, float depth, float height );
 	virtual ~Landscape();
 	
+	Point& operator ()( int row, int column );
+	Point& operator ()( float x, float z );
+	vector<float> getColour( int row, int column);
+	vector<float> getNormal( int row, int column);
+	
+	int getGridWidth();
+	float getWidth();
+	float getHeight();
+	float getDepth();
+	
+	float getBoundary( Direction direction );
+	
+	void generate( int grid_width,
+	               float x, float y, float z,
+	               float width, float depth, float height );
 	void regenerate();
 
 protected:
+    Point position;
+    
     int gridWidth;
     float gridDivisionWidth, // The north-south distance between grid points
           gridDivisionDepth; // The east-west distance between grid points

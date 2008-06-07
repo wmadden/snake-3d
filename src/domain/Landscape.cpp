@@ -2,6 +2,8 @@
 #include "maths/maths.h"
 #include <math.h>
 
+#define COLOR_CHANNELS 3
+
 using namespace maths;
 
 namespace domain
@@ -190,6 +192,13 @@ void Landscape::allocateMaps( int grid_width )
         pointMap->push_back( new vector<Point>(gridWidth) );
         colorMap->push_back( new vector< vector<float>* >(gridWidth) );
         normalMap->push_back( new vector<Point>(gridWidth) );
+        
+        // Initialize shit
+        for( int column = 0; column < gridWidth; column++ )
+        {
+            setPointHeight( row, column, position.y );
+            (*(*colorMap)[row])[column] = new vector<float>(COLOR_CHANNELS, 0);
+        }
     }
 }
 

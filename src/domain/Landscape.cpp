@@ -7,20 +7,10 @@ Landscape::Landscape( int grid_width,
                       float x, float y, float z,
                       float width, float depth, float height )
 {
-    // Create point map
-    pointMap = new vector<Point>*[gridWidth];
-    // Create color map
-    colorMap = new vector<float>*[gridWidth];
-    // Create normal map
-    normalMap = new vector<float>*[gridWidth];
-    // Allocate the memory
-    /*for( int row = 0; row < gridWidth; row++ )
-    {
-        pointMap[row] = new vector<float>[gridWidth];
-        colorMap[row] = new vector<float>[gridWidth];
-        normalMap[row] = new vector<float>[gridWidth];
-    }*/
-    
+    gridWidth = 0;
+    pointMap = NULL;
+    normalMap = NULL;
+    colorMap = NULL;
     
     // Generate landscape
     generate( grid_width,
@@ -31,26 +21,39 @@ Landscape::Landscape( int grid_width,
 Landscape::~Landscape()
 {
     // Free allocated memory
+    freeMaps();
 }
 
-Point& Landscape::operator ()( int row, int column )
+Point Landscape::operator ()( int row, int column )
 {
-    return pointMap[row][column];
+    return (*(*pointMap)[row])[column];
 }
 
-Point& Landscape::operator ()( float x, float z )
+Point Landscape::operator ()( float x, float z )
 {
-    return pointMap[(int)(x / gridDivisionWidth)][(int)(z / gridDivisionDepth)];
+    int row = x / gridDivisionWidth,
+        column = z / gridDivisionDepth;
+    return (*(*pointMap)[row])[column];
 }
 
-vector<float> Landscape::getColour( int row, int column)
+vector<int> Landscape::getClosestPoint( float x, float z )
 {
-    return colorMap[row][column];
+    vector<int> coords(2);
+    
+    coords.push_back( (int)(x / gridDivisionWidth) );
+    coords.push_back( (int)(z / gridDivisionDepth) );
+    
+    return coords;
 }
 
-vector<float> Landscape::getNormal( int row, int column)
+vector<float>* Landscape::getColor( int row, int column)
 {
-    return normalMap[row][column];
+    return (*(*colorMap)[row])[column];
+}
+
+Point Landscape::getNormal( int row, int column)
+{
+    return (*(*normalMap)[row])[column];
 }
 
 int Landscape::getGridWidth()
@@ -86,6 +89,8 @@ float Landscape::getBoundary( Direction direction )
     case DIRECTION_WEST:
         return westBound;
     }
+    
+    throw "Execution should never reach here.";
 }
 
 void Landscape::regenerate()
@@ -95,11 +100,55 @@ void Landscape::regenerate()
               width, depth, height );
 }
 
+void Landscape::freeMaps()
+{
+    // Free allocated memory
+    vector< vector<Point>* >::iterator pointit = pointMap->begin(),
+                                      normit = normalMap->begin();
+    vector< vector< vector<float>* >* >::iterator colorit = colorMap->begin();
+    
+    for( int row = 0; row < gridWidth; row++ )
+    {
+        delete *pointit;
+        delete *normit;
+        delete *colorit;
+        
+        pointit++;
+        normit++;
+        colorit++;
+    }
+}
+
+void Landscape::allocateMaps( int grid_width )
+{
+    if( grid_width != gridWidth )
+    {
+        freeMaps();
+        gridWidth = grid_width;
+    }
+    
+    // Create point map
+    pointMap = new vector< vector<Point>* >(gridWidth);
+    // Create color map
+    colorMap = new vector< vector< vector<float>* >* >(gridWidth);
+    // Create normal map
+    normalMap = new vector< vector<Point>* >(gridWidth);
+    
+    // Allocate the memory
+    for( int row = 0; row < gridWidth; row++ )
+    {
+        pointMap->push_back( new vector<Point>(gridWidth) );
+        colorMap->push_back( new vector< vector<float>* >(gridWidth) );
+        normalMap->push_back( new vector<Point>(gridWidth) );
+    }
+}
+
 void Landscape::generate( int grid_width,
                           float x, float y, float z,
                           float width, float depth, float height )
 {
-    gridWidth = grid_width;
+    allocateMaps(grid_width);
+    
     this->width = width;
     this->depth = depth;
     this->height = height;

@@ -3,20 +3,11 @@
 namespace graphics 
 {
 
-///////////////////////////////////////////////////////////////////////////////
-//  INITIALISE STATIC VARIABLES
-///////////////////////////////////////////////////////////////////////////////
 bool initialized = false;
 map<int, Window*> Window::windows;
 
-///////////////////////////////////////////////////////////////////////////////
-//  PROTOTYPES
-///////////////////////////////////////////////////////////////////////////////
 void initialize();
 
-///////////////////////////////////////////////////////////////////////////////
-//  CONSTRUCTORS / DESTRUCTOR
-///////////////////////////////////////////////////////////////////////////////
 Window::Window( string title )
 {
 	windowID = glutCreateWindow( title.c_str() );
@@ -66,87 +57,9 @@ int Window::getStateVariable( GLenum en )
 	return result;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  PROPERTY ACCESSORS
-///////////////////////////////////////////////////////////////////////////////
 int Window::getId()
 {
 	return this->windowID;
-}
-
-void Window::setTitle( string title )
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutSetWindowTitle( title.c_str() );
-	glutSetWindow(cur);
-	this->title = title;
-}
-
-int Window::getWidth()
-{
-	return getStateVariable( GLUT_WINDOW_WIDTH );
-}
-
-int Window::getHeight()
-{
-	return getStateVariable( GLUT_WINDOW_HEIGHT );
-}
-
-void Window::setWidth( int width )
-{
-	resize( width, getHeight() );
-}
-
-void Window::setHeight( int height )
-{
-	resize( getWidth(), height );
-}
-
-string Window::getTitle()
-{
-	return title;
-}
-
-void Window::setIconTitle( string title )
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutSetIconTitle( title.c_str() );
-	glutSetWindow(cur);
-}
-
-/**
- * Makes the window fullscreen.
- */
-void Window::makeFullScreen()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutFullScreen();
-	glutSetWindow(cur);
-}
-
-/**
- * Resizes the window.
- */
-void Window::resize( int width, int height )
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutReshapeWindow( width, height );
-	glutSetWindow(cur);
-}
-
-/**
- * Moves the window.
- */
-void Window::move( int x, int y )
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutPositionWindow( x, y );
-	glutSetWindow(cur);
 }
 
 void Window::makeCurrent()
@@ -154,57 +67,6 @@ void Window::makeCurrent()
 	glutSetWindow( this->windowID );
 }
 
-void Window::makeDirty()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutPostRedisplay();
-	glutSetWindow(cur);
-}
-
-void Window::swapBuffers()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutSwapBuffers();
-	glutSetWindow(cur);
-}
-
-void Window::show()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutShowWindow();
-	glutSetWindow(cur);
-}
-
-void Window::hide()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutHideWindow();
-	glutSetWindow(cur);
-}
-
-void Window::iconify()
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutIconifyWindow();
-	glutSetWindow(cur);
-}
-
-void Window::setCursor( int cursor )
-{
-	int cur = glutGetWindow();
-	glutSetWindow( this->windowID );
-	glutSetCursor( cursor );
-	glutSetWindow(cur);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-//  EVENT TRIGGERS
-///////////////////////////////////////////////////////////////////////////////
 void Window::renderEvent()
 {
 	this->renderHandler();
@@ -245,9 +107,6 @@ void Window::mouseEntryEvent( int state )
 	this->mouseEntryHandler( state );
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  EVENT HANDLERS
-///////////////////////////////////////////////////////////////////////////////
 void Window::renderHandler()
 {
 }
@@ -280,18 +139,15 @@ void Window::mouseEntryHandler( int state )
 {
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  GLUT CALLBACK REROUTING
-//  -----------------------
-//  The purpose of these functions is to reroute GLUT callbacks (coded in the
-//  traditional C style) to individual Window objects' event handlers. This is
-//  necessary because C callbacks can't take member function pointers. It's
-//  a little hacky, but it should work fine.
-///////////////////////////////////////////////////////////////////////////////
+/*******************************************************************************
+ *  GLUT CALLBACK REROUTING
+ *  -----------------------
+ *  The purpose of these functions is to reroute GLUT callbacks (coded in the
+ *  traditional C style) to individual Window objects' event handlers. This is
+ *  necessary because C callbacks can't take member function pointers. It's
+ *  a little hacky, but it should work fine.
+ ******************************************************************************/
 
-///////////////////////////////////////////////////////////////////////////////
-//  PROTOTYPES
-///////////////////////////////////////////////////////////////////////////////
 void register_window_callbacks();
 void render_router();
 void resize_router( int width, int height );
@@ -302,9 +158,6 @@ void mouseActiveMotion_router( int x, int y );
 void mousePassiveMotion_router( int x, int y );
 void mouseEntry_router( int state );
 
-///////////////////////////////////////////////////////////////////////////////
-//  INITIALIZATION
-///////////////////////////////////////////////////////////////////////////////
 /**
  * This function initializes the Window callback system, registering glut
  * callbacks to be rerouted to the appropriate Window object.
@@ -333,9 +186,6 @@ void register_window_callbacks()
 	glutSpecialFunc( keyboardSpecial_router );
 }
 
-///////////////////////////////////////////////////////////////////////////////
-//  CALLBACKS (ROUTERS)
-///////////////////////////////////////////////////////////////////////////////
 void render_router()
 {
 	Window* window = Window::getWindow( glutGetWindow() );

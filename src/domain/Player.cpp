@@ -52,16 +52,6 @@ Point Player::getTailPosition()
     // TODO
 }
 
-Point Player::getForwardVector()
-{
-    // TODO
-}
-
-Point Player::getUpVector()
-{
-    // TODO
-}
-
 void Player::setDirection( Direction direction )
 {
     this->direction = direction;

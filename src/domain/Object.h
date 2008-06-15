@@ -2,11 +2,14 @@
 #define OBJECT_H_
 
 #include "Point.h"
+#include "patterns/Observer.h"
+
+using patterns::Subject;
 
 namespace domain
 {
 
-class Object
+class Object : public patterns::Subject
 {
 public:
 	Object();
@@ -14,6 +17,7 @@ public:
 	
 	Point getPosition();
 	Point getVelocity();
+	Point getUpVector();
 	float getRadius();
 	void setVelocity( float x, float y, float z );
 	void setPosition( float x, float y, float z );

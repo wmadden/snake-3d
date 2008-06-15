@@ -24,9 +24,6 @@ public:
 	Point getHeadPosition();
 	Point getTailPosition();
 	
-	Point getForwardVector();
-	Point getUpVector();
-	
 	void setDirection( Direction direction );
 	
 protected:

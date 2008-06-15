@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "Point.h"
+#include "Object.h"
 
 using std::vector;
 
@@ -14,7 +15,7 @@ enum Direction
     DIRECTION_NORTH, DIRECTION_SOUTH, DIRECTION_EAST, DIRECTION_WEST
 };
 
-class Landscape
+class Landscape : public Object
 {
 public:
 	Landscape( int grid_width,

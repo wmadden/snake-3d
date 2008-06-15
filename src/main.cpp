@@ -45,11 +45,13 @@ using namespace graphics;
 Window* main_window = NULL;
 Window* debug_window = NULL;
 
+#define MAIN_TIMER_ID 0
+
 /*******************************************************************************
  * FUNCTION PROTOTYPES
  ******************************************************************************/
 void initialize_GLUT( int*, char** );
-void game_loop();
+void game_loop(int);
 void initialize_game();
 
 
@@ -110,13 +112,14 @@ void initialize_game()
     /* Initialize input */
 
     /* Register the game loop */
-    glutIdleFunc(game_loop);
+    //glutIdleFunc(game_loop);
+    glutTimerFunc( 30, game_loop, MAIN_TIMER_ID );
 }
 
 /**
  * The game loop, this function is called periodically to update the game.
  */
-void game_loop()
+void game_loop( int timer_id )
 {
     static int last_time = -1;
     int delta, now;
